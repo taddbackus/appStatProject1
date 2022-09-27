@@ -60,7 +60,7 @@ carData$doors[is.na(carData$doors) & carData$Make == 'Ferrari'] = 2
 
 # Horsepower
 # Used mean of same model if there was data otherwise dropped
-arData$horsepower[is.na(carData$horsepower) & 
+carData$horsepower[is.na(carData$horsepower) & 
                     carData$Make == 'Lincoln' &
                     carData$Model == 'Continental'] = mean(
                       carData$horsepower[!is.na(carData$horsepower) &
