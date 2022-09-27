@@ -161,7 +161,7 @@ ggpairs(carNumTrans)
 ss = sample(1:3, size=nrow(carDataTrans),replace=TRUE,prob=c(0.8,0.1,0.1))
 train = carDataTrans[ss==1,]
 test = carDataTrans[ss==2,]
-val = carDataTrans[ss==3.]
+val = carDataTrans[ss==3,]
 
 ################################################################################
 # Initial EDA and transforming data
