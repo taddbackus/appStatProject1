@@ -119,6 +119,19 @@ carData$horsepower[is.na(carData$horsepower) &
                                             carData$Model == 'RAV4 EV']
                      )
 
+# Fuel Type
+# Fixing Suzuki Verona
+carData$fuelType[carData$Make == 'Suzuki' &
+                   carData$fuelType == ''] = 'regular unleaded'
+
+# Category
+# Using only the first value in the string for simplicity
+# Replacing the N/A factor with Other because it seems important
+carData$category = sub(',.*','',carData$category)
+carData$category[carData$category == 'N/A'] = 'Other'
+carData$category = as.factor(carData$category)
+
+
 carDataClean = na.omit(carData)
 sapply(carDataClean, function(x) sum(is.na(x)))
 
@@ -155,6 +168,8 @@ carDataTrans$combMPG = log(carDataTrans$combMPG)
 carNumTrans = carDataTrans[,num_cols]
 ggpairs(carNumTrans)
 
+ggplot(carDataTrans, aes(y=category))+
+  geom_bar()
 ################################################################################
 # Splitting data
 ################################################################################
@@ -219,6 +234,7 @@ AIC(glmnet.fit)
 
 ################################################################################
 # Objective 2
+# Complex MLR
 ################################################################################
 complexModel1 = lm(MSRP~combMPG+cylinders+horsepower+Year+doors+Make+fuelType+transmission+
                      drive+category+horsepower:category+Year:yearCat+yearCat+combMPG:fuelType,
@@ -237,6 +253,42 @@ glmnet.fit2
 plot(glmnet.fit2)
 opt.pen<-glmnet.fit2$finalModel$lambdaOpt #penalty term
 coef(glmnet.fit2$finalModel,opt.pen)
+
+################################################################################
+# Objective 2
+# kNN Regression
+################################################################################
+testModel = train(MSRP~.,data=train,method='knn')
+testModel
+
+plot(testModel)
+
+testModel = train(MSRP~combMPG+cylinders+horsepower+yearCat+doors,
+                  data=train,
+                  method='knn')
+testModel
+plot(testModel)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
