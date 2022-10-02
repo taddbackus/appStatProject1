@@ -173,7 +173,7 @@ ggplot(carDataTrans, aes(y=category))+
 ################################################################################
 # Splitting data
 ################################################################################
-seed(1234)
+set.seed(1234)
 ss = sample(1:3, size=nrow(carDataTrans),replace=TRUE,prob=c(0.8,0.1,0.1))
 train = carDataTrans[ss==1,]
 test = carDataTrans[ss==2,]
