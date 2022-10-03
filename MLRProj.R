@@ -297,6 +297,15 @@ plot(glmnet.fit2)
 opt.pen<-glmnet.fit2$finalModel$lambdaOpt #penalty term
 coef(glmnet.fit2$finalModel,opt.pen)
 
+       
+testingset = rbind(testT,valT)
+Predictions = predict(glmnet.fit2,testingset)
+trainingPred = cbind(glmnet.fit2$results,trainT)
+
+FullSet = cbind(Predictions,testingset)
+MSRP = exp(FullSet$MSRP)
+Predictions = exp(FullSet$Predictions)
+TestASEError = mean((Predictions-MSRP)/MSRP)
 ################################################################################
 # Objective 2
 # kNN Regression
@@ -313,7 +322,79 @@ testModel
 plot(testModel)
 
 
+library(ranger)
 
+net = seq(1,500,5)
+
+
+OOB = vector("numeric", length(net))
+rs = vector("numeric", length(net))
+ntree = vector("numeric", length(net))
+
+for (i in 1:length(net)){
+rf = ranger(exp(MSRP) ~., trainT, num.trees = net[i],mtry = 4, importance = 'impurity', write.forest = TRUE)
+OOB[i] = rf$prediction.error
+rs[i] = rf$r.squared
+ntree[i] = rf$num.trees
+
+
+}
+alldata = data.frame(cbind(OOB,rs,ntree))
+colnames(alldata) = c("OutofBag", "RSquared", "NumberofTrees")
+
+
+datatorun = alldata[which.min(alldata$OutofBag),]
+
+
+rerun = ranger(exp(MSRP)~., trainT, num.trees = datatorun$NumberofTrees, importance = 'impurity', write.forest = TRUE)
+
+
+# Creating Gini Score Data Frame
+GiniScores = data.frame(GiniScore = c(rerun$variable.importance),"Variable" = c(t(colnames(subset(trainT,select = -c(MSRP))))))
+
+
+##Creating Indexed Gini Scores
+GiniScores$med = median(GiniScores$GiniScore)
+GiniScores$Index = GiniScores$GiniScore / GiniScores$med
+
+### Final Predictors
+
+Predictors = (GiniScores %>% filter(Index >=1)) %>% select(Variable)
+Predictors2 = t(Predictors)
+slimmeddata = cbind(data.frame(trainT[,colnames(trainT) %in% c(Predictors2)]),data.frame("MSRP" =trainT$MSRP))
+
+
+###Final MLR
+
+complexModel2 = lm(exp(MSRP)~.,data=slimmeddata)
+summary(complexModel2)
+AIC(complexModel2)
+
+Predictors3 = data.frame("MSRP"= c("MSRP"))
+Predictors3 = cbind(Predictors2,Predictors3)
+val = valT[,colnames(trainT) %in% c(Predictors2)]
+valMSRP = valT[,colnames(trainT) %in% c(Predictors3)]
+test = testT[,colnames(trainT) %in% c(Predictors2)]
+testMSRP = testT[,colnames(trainT) %in% c(Predictors3)]
+test = rbind(test,val)
+testMSRP = rbind(testMSRP,valMSRP)
+levels = complexModel2$xlevels
+Models = data.frame("Model" =levels$Model)
+
+test = test %>% filter(Model %in% Models$Model)
+testMSRP = testMSRP %>% filter(Model %in% Models$Model)
+predictions_final = predict(complexModel2,newdata=test)
+fitControl<-trainControl(method="repeatedcv",number=5,repeats=1) 
+finalset = cbind(predictions_final,test)
+finalset = cbind(finalset,testMSRP$MSRP)
+finalset$`testMSRP$MSRP` = exp(finalset$`testMSRP$MSRP`)
+
+colnames(finalset)[colnames(finalset) == "testMSRP$MSRP"] ="BeginMSRP"
+
+Col1 = finalset$MSRP
+col2 = finalset$BeginMSRP
+AverageError =mean((finalset$predictions_final-finalset$BeginMSRP)/finalset$BeginMSRP)
+TotalErrors = data.frame("Complex Model Error" = AverageError,"Initial Model Error" = TestASEError)
 
 
 
