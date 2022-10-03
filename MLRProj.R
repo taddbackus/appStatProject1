@@ -211,27 +211,69 @@ ggplot(train, aes(x=MSRP,y=style,fill=yearCat))+
 ################################################################################
 # Objective 1
 ################################################################################
-# Playing with LASSO
-fitControl<-trainControl(method="repeatedcv",number=5,repeats=1) 
+# # Playing with LASSO
+# fitControl<-trainControl(method="repeatedcv",number=5,repeats=1) 
+# 
+# 
+# #Fitting glmnet
+# set.seed(1234)
+# glmnet.fit<-train(MSRP~combMPG+cylinders+horsepower+Year+doors+Make+fuelType+transmission+drive+Year:yearCat,
+#                   data=train,
+#                   method="glmnet",
+#                   trControl=fitControl,
+#                   tuneGrid=expand.grid(data.frame(alpha=1,lambda=seq(0,.05,.001)))
+# )
+# 
+# glmnet.fit
+# plot(glmnet.fit)
+# 
+# 
+# #Investigating coefficients
+# opt.pen<-glmnet.fit$finalModel$lambdaOpt #penalty term
+# coef(glmnet.fit$finalModel,opt.pen)
+# AIC(glmnet.fit)
 
 
-#Fitting glmnet
-set.seed(1234)
-glmnet.fit<-train(MSRP~combMPG+cylinders+horsepower+Year+doors+Make+fuelType+transmission+drive+Year:yearCat,
-                  data=train,
-                  method="glmnet",
-                  trControl=fitControl,
-                  tuneGrid=expand.grid(data.frame(alpha=1,lambda=seq(0,.05,.001)))
-)
+##### my attempt
 
-glmnet.fit
-plot(glmnet.fit)
+MSRPaov = aov(MSRP ~ .,data = train)
+summary(MSRPaov)
+
+Popularty_VS_All = aov(Popularity ~., data = train)
+summary(Popularty_VS_All)
+
+# TukeyHSD(MSRPaov)
+
+# popularity of brand vs year 
+
+train %>% group_by(Make) %>% 
+  summarise_at(c("Popularity", "Year","MSRP"), mean, na.rm = TRUE) %>%
+  ggplot(aes(x = Year, y = Popularity, color = MSRP)) + geom_point() +
+  geom_smooth(method=glm,linetype="dashed",color="black") + 
+  scale_color_gradient(low = "red", high = "black") + 
+  labs(title = "Year vs Popularity, Color Scaled with MSRP")
 
 
-#Investigating coefficients
-opt.pen<-glmnet.fit$finalModel$lambdaOpt #penalty term
-coef(glmnet.fit$finalModel,opt.pen)
-AIC(glmnet.fit)
+# cylinders vs msrp
+
+ggplot(train, aes(x=as.factor(cylinders),y=MSRP, fill = as.factor(cylinders))) + 
+  geom_boxplot() + labs(title = "Cylinders vs MSRP", x = "Cylinders") + 
+  theme(legend.position="none")
+
+MSRPaovPred <- predict(MSRPaov, newdata = test, na.action = na.pass)
+RMSE(pred = MSRPaovPred, obs = test$MSRP)
+
+
+par(mfrow=c(2,2))
+plot(MSRPaov)
+par(mfrow=c(1,1))
+
+qqnorm(train$Popularity)
+qqline(train$Popularity)
+
+qqnorm(train$MSRP)
+qqline(train$MSRP)
+
 
 ################################################################################
 # Objective 2
